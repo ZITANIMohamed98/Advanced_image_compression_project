@@ -132,38 +132,53 @@ class ZigzagScanning():
 
     def backward(self,seq):
         # initialize the 2D array
-        block = [[0 for _ in range(8)] for _ in range(4)]
+        block = [[0 for _ in range(8)] for _ in range(8)]
 
-        # initialize the variables
-        n = 8
-        m = 8
-        i, j = 0, 0
-        direction = 1
-
-        # loop over the 1D array in reverse zigzag pattern
-        for k in range(n * m):
-            block[i][j] = seq[k]
-            if direction == 1:
-                if j == m - 1:
-                    i += 1
-                    direction = -1
-                elif i == 0:
-                    j += 1
-                    direction = -1
-                else:
-                    i -= 1
-                    j += 1
+        index = 0
+        for i in range(15):
+            if i < 8:
+                row, col = i, 0
             else:
-                if i == n - 1:
-                    j += 1
-                    direction = 1
-                elif j == 0:
-                    i += 1
-                    direction = 1
-                else:
-                    i += 1
-                    j -= 1
+                row, col = 7, i - 7
 
+            if i % 2 == 0:
+                row, col = col, row
+
+            for j in range(max(0, i - 7), min(i + 1, 8)):
+                if i % 2 == 0:
+                    block[row][col] = seq[index]
+                else:
+                    block[col][row] = seq[index]
+                index += 1
+
+                row -= 1
+                col += 1
+
+        return block
+class RLE():
+    def forward(self,seq):
+        encoded_seq = []
+        current_value = seq[0]
+        count = 1
+
+        for i in range(1, len(seq)):
+            if seq[i] == current_value:
+                count += 1
+            else:
+                encoded_seq.append((current_value, count))
+                current_value = seq[i]
+                count = 1
+
+        encoded_seq.append((current_value, count))
+
+        return encoded_seq
+    
+    def backward(self,encoded_seq):
+        decoded_seq = []
+        for value, count in encoded_seq:
+            decoded_seq.extend([value] * count)
+        return decoded_seq
+    
 class Entropy():
     def forward(self,seq):
         # create a dictionary to store the frequency of each symbol

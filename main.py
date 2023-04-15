@@ -22,6 +22,7 @@ image_block = utils.ImageBlock(block_height=8, block_width=8)
 dct2d = utils.DCT2D(norm='ortho')
 quantization = utils.Quantization()
 zigzagScanning = utils.ZigzagScanning()
+rle = utils.RLE()
 entropy = utils.Entropy()
 ###############################################################################
 # Preprocess
@@ -66,16 +67,18 @@ def process_block(block, index):
     
     # RLE + zigzag scanning
     encoded = zigzagScanning.forward(encoded)
+    encoded = rle.forward(encoded)
     # Entropy coding (Arithmetic)
     encoded, prob = entropy.forward(encoded)
     
 
     # Reverse Entropy coding (Arithmetic)
     decoded = entropy.backward(encoded, prob)
+    encoded = rle.backward(decoded)
     # Reverse RLE + zigzag scanning
-    decoded = zigzagScanning.backward(encoded)
+    decoded = zigzagScanning.backward(decoded)
     # Dequantization
-    decoded = quantization.backward(encoded, channel_type)
+    decoded = quantization.backward(decoded, channel_type)
     
     # Reverse DCT
     compressed = dct2d.backward(decoded)
