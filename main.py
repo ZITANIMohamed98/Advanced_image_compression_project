@@ -89,8 +89,11 @@ def process_block(block, index):
 # Use Pool from the multiprocessing library becasue the compression task is 
 # highly parallelizable. The same operation is performed on different blocks
 # where there is no dependency among the data. 
-compressed = np.array(Pool().starmap(process_block, zip(blocks, indices)))
+#compressed = np.array(Pool().starmap(process_block, zip(blocks, indices)))
 
+compressed = []
+for i in range(0,int(blocks.size/64)-1):
+  compressed.append(process_block(blocks[i],indices[i]))
 ###############################################################################
 # Postprocess
 ###############################################################################
