@@ -108,53 +108,28 @@ class DCT2D():
 class ZigzagScanning():
     
     def forward(self, block):
-        # initialize the zigzag array
-        zigzag = []
+        """Perform zig-zag scanning on an 8x8 matrix."""
+        scan = []
+        for i in range(8):
+            for j in range(8):
+                if (i + j) % 2 == 0:  # even diagonal
+                    scan.append(block[i][j])
+                else:  # odd diagonal
+                    scan.append(block[j][i])
+        return scan
 
-        # loop over the macroblock in a zigzag pattern
-        for i in range(16):
-            if i % 2 == 0:
-                # even diagonal (top-right to bottom-left)
-                for j in range(i + 1):
-                    x = j
-                    y = i - j
-                    if x < 8 and y < 8:
-                        zigzag.append(block[x][y])
-            else:
-                # odd diagonal (bottom-left to top-right)
-                for j in range(i + 1):
-                    x = i - j
-                    y = j
-                    if x < 8 and y < 8:
-                        zigzag.append(block[x][y])
-
-        return zigzag
-
-    def backward(self,seq):
-        # initialize the 2D array
-        block = [[0 for _ in range(8)] for _ in range(8)]
-
-        index = 0
-        for i in range(15):
-            if i < 8:
-                row, col = i, 0
-            else:
-                row, col = 7, i - 7
-
-            if i % 2 == 0:
-                row, col = col, row
-
-            for j in range(max(0, i - 7), min(i + 1, 8)):
-                if i % 2 == 0:
-                    block[row][col] = seq[index]
-                else:
-                    block[col][row] = seq[index]
-                index += 1
-
-                row -= 1
-                col += 1
-
-        return block
+    def backward(self,scan):
+        """Perform reverse zig-zag scanning on a list of 64 elements."""
+        matrix = [[0 for _ in range(8)] for _ in range(8)]
+        idx = 0
+        for i in range(8):
+            for j in range(8):
+                if (i + j) % 2 == 0:  # even diagonal
+                    matrix[i][j] = scan[idx]
+                else:  # odd diagonal
+                    matrix[j][i] = scan[idx]
+                idx += 1
+        return matrix
 class RLE():
     def forward(self,seq):
         encoded_seq = []
@@ -208,7 +183,11 @@ class Entropy():
         # return the encoded value and the probability dictionary
         return int(value), prob
 
-    def backward(self,encoded_value,freq):
+    def backward(self, encoded_value, freq):
+    # check if the freq dictionary is empty
+        if not freq:
+            return []
+
         # create a dictionary to store the frequency of each symbol
         total = sum(freq.values())
 
@@ -229,15 +208,14 @@ class Entropy():
             # find the symbol that corresponds to the symbol interval
             symbol = None
             cum_prob = 0
-            for k in freq.keys():
-                cum_prob += freq[k] / total
+            for symbol, prob in freq.items():
+                cum_prob += prob / total
                 if cum_prob > symbol_interval:
-                    symbol = k
                     break
 
             # update the range and the current value for the next symbol
-            high = low + range_size * (cum_prob)
-            low = low + range_size * (cum_prob - freq[symbol] / total)
+            high = low + range_size * cum_prob
+            low = low + range_size * (cum_prob - prob / total)
             value = (value - low) / range_size * total
 
             # add the decoded symbol to the sequence

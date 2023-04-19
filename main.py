@@ -45,7 +45,7 @@ Cr = chr_downsample(ycc_img[:,:,1])
 Cb = chr_downsample(ycc_img[:,:,2])
 ycc_img = np.stack((Y, Cr, Cb), axis=2)
 
-# Create 4x4 blocks
+# Create 8x8 blocks
 blocks, indices = image_block.forward(ycc_img)
 
 ###############################################################################
@@ -69,11 +69,11 @@ def process_block(block, index):
     encoded = zigzagScanning.forward(encoded)
     encoded = rle.forward(encoded)
     # Entropy coding (Arithmetic)
-    encoded, prob = entropy.forward(encoded)
+    # encoded, prob = entropy.forward(encoded)
     
 
     # Reverse Entropy coding (Arithmetic)
-    decoded = entropy.backward(encoded, prob)
+    # decoded = entropy.backward(encoded, prob)
     encoded = rle.backward(decoded)
     # Reverse RLE + zigzag scanning
     decoded = zigzagScanning.backward(decoded)
