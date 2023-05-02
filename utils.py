@@ -8,6 +8,8 @@ Image compression util functions.
 import numpy as np
 from scipy.fft import dct
 from scipy.signal import convolve2d
+from heapq import heappush, heappop, heapify
+from collections import defaultdict
 
 class Downsampling():
     def __init__(self, ratio='4:2:0'):
@@ -155,74 +157,45 @@ class RLE():
         return decoded_seq
     
 class Entropy():
-    def forward(self,seq):
-        # create a dictionary to store the frequency of each symbol
-        freq = {}
-        for symbol in seq:
-            if symbol in freq:
+    def huffman_encoding(self,seq):
+        if not seq:
+            return "", None
+        freq = defaultdict(int)
+        for lst in seq:
+            for symbol in lst:
                 freq[symbol] += 1
-            else:
-                freq[symbol] = 1
 
-        # calculate the probability of each symbol
-        total = sum(freq.values())
-        prob = {symbol: freq[symbol] / total for symbol in freq}
+# Step 2: Create a binary tree
+        heap = [[weight, [symbol, ""]] for symbol, weight in freq.items()]
+        heapify(heap)
+        while len(heap) > 1:
+            lo = heappop(heap)
+            hi = heappop(heap)
+            for pair in lo[1:]:
+                pair[1] = '0' + pair[1]
+            for pair in hi[1:]:
+                pair[1] = '1' + pair[1]
+            heappush(heap, [lo[0] + hi[0]] + lo[1:] + hi[1:])
 
-        # initialize the range and the current value
-        low = 0
-        high = 1
-        value = 0
-
-        # encode each symbol using arithmetic coding
-        for symbol in seq:
-            range_size = high - low
-            high = low + range_size * sum(prob[s] for s in prob if s <= symbol)
-            low = low + range_size * sum(prob[s] for s in prob if s < symbol)
-            value = (value * total) + freq[symbol] * sum(prob[s] for s in prob if s < symbol)
-
-        # return the encoded value and the probability dictionary
-        return int(value), prob
-
-    def backward(self, encoded_value, freq):
-    # check if the freq dictionary is empty
-        if not freq:
-            return []
-
-        # create a dictionary to store the frequency of each symbol
-        total = sum(freq.values())
-
-        # initialize the range and the current value
-        low = 0
-        high = 1
-        value = encoded_value
-
-        # initialize the decoded sequence
-        decoded_seq = []
-
-        # decode each symbol using arithmetic coding
-        for i in range(len(freq)):
-            # calculate the range size and the symbol interval
-            range_size = high - low
-            symbol_interval = (value - low) / range_size
-
-            # find the symbol that corresponds to the symbol interval
-            symbol = None
-            cum_prob = 0
-            for symbol, prob in freq.items():
-                cum_prob += prob / total
-                if cum_prob > symbol_interval:
-                    break
-
-            # update the range and the current value for the next symbol
-            high = low + range_size * cum_prob
-            low = low + range_size * (cum_prob - prob / total)
-            value = (value - low) / range_size * total
-
-            # add the decoded symbol to the sequence
-            decoded_seq.append(symbol)
-
+    # Step 3: Traverse the tree to assign unique binary codes to each symbol
+        huff = dict(heappop(heap)[1:])
+    # Step 4: Encode the input sequence using the binary codes
+        encoded_seq = ""
+        for lst in seq:
+            for symbol in lst:
+                encoded_seq += huff[symbol]
+                
+        return encoded_seq, huff       
+    def huffman_decoding(encoded_seq, huff):
+        decoded_seq = ""
+        temp = ""
+        for bit in encoded_seq:
+            temp += bit
+            for symbol, code in huff.items():
+                if code == temp:
+                    decoded_seq += str(symbol)
+                    temp = ""
         return decoded_seq
-
 class Quantization():
     # Quantiztion matrices
     # https://www.impulseadventure.com/photo/jpeg-quantization.html

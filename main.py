@@ -54,7 +54,7 @@ blocks, indices = image_block.forward(ycc_img)
 def process_block(block, index):
     
     #Prediction  -> Prediction error
-    
+    encoded_array = []
     # DCT
     encoded = dct2d.forward(block)
     if index[2] == 0:
@@ -71,6 +71,7 @@ def process_block(block, index):
     # Entropy coding (Arithmetic)
     # encoded, prob = entropy.forward(encoded)
     
+    encoded_array.append(encoded)
 
     # Reverse Entropy coding (Arithmetic)
     # decoded = entropy.backward(encoded, prob)
@@ -82,7 +83,7 @@ def process_block(block, index):
     
     # Reverse DCT
     compressed = dct2d.backward(decoded)
-    return compressed
+    return compressed, encoded_array
 
     #Reverse Prediction 
 
