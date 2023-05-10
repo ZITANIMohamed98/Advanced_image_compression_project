@@ -51,10 +51,12 @@ blocks, indices = image_block.forward(ycc_img)
 ###############################################################################
 # Compression
 ###############################################################################
+toEncode_Y = []
+toEncode_CbCr = []
 def process_block(block, index):
     
     #Prediction  -> Prediction error
-    encoded_array = []
+    
     # DCT
     encoded = dct2d.forward(block)
     if index[2] == 0:
@@ -68,13 +70,14 @@ def process_block(block, index):
     # RLE + zigzag scanning
     encoded = zigzagScanning.forward(encoded)
     encoded = rle.forward(encoded)
-    # Entropy coding (Arithmetic)
-    # encoded, prob = entropy.forward(encoded)
     
-    encoded_array.append(encoded)
+    assert channel_type in ('lum', 'chr')
+        
+    if channel_type == 'lum':
+        toEncode_Y.append(encoded)
+    else:
+        toEncode_CbCr.append(encoded)
 
-    # Reverse Entropy coding (Arithmetic)
-    # decoded = entropy.backward(encoded, prob)
     encoded = rle.backward(decoded)
     # Reverse RLE + zigzag scanning
     decoded = zigzagScanning.backward(decoded)
@@ -83,7 +86,7 @@ def process_block(block, index):
     
     # Reverse DCT
     compressed = dct2d.backward(decoded)
-    return compressed, encoded_array
+    return compressed
 
     #Reverse Prediction 
 
@@ -95,6 +98,8 @@ def process_block(block, index):
 compressed = []
 for i in range(0,int(blocks.size/64)-1):
   compressed.append(process_block(blocks[i],indices[i]))
+encodedY, codebook = entropy.huffman_encoding(toEncode_Y)
+encodedCbCr, codebook= entropy.huffman_encoding(toEncode_CbCr)
 ###############################################################################
 # Postprocess
 ###############################################################################

@@ -186,15 +186,19 @@ class Entropy():
                 encoded_seq += huff[symbol]
                 
         return encoded_seq, huff       
-    def huffman_decoding(encoded_seq, huff):
-        decoded_seq = ""
+    def huffman_decoding(self, encoded_seq, huff):
+        decoded_seq = []
         temp = ""
         for bit in encoded_seq:
-            temp += bit
+            temp += str(bit)
             for symbol, code in huff.items():
                 if code == temp:
-                    decoded_seq += str(symbol)
+                    decoded_seq.append(symbol)
                     temp = ""
+                    break  # Exit the loop after finding the symbol
+            else:
+                continue  # If no symbol is found, continue the loop
+            break  # Exit the outer loop after finding the symbol
         return decoded_seq
 class Quantization():
     # Quantiztion matrices
