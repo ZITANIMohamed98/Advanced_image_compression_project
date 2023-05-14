@@ -158,12 +158,21 @@ class RLE():
     
 class Entropy():
     def huffman_encoding(self,seq):
+        eof = (-1,-1)
+        flatSeq = []
         if not seq:
             return "", None
         freq = defaultdict(int)
         for lst in seq:
             for symbol in lst:
+                flatSeq.append(symbol)
+            flatSeq.append(eof)
+            
+            
+        for symbol in flatSeq:
                 freq[symbol] += 1
+                
+                
 
 # Step 2: Create a binary tree
         heap = [[weight, [symbol, ""]] for symbol, weight in freq.items()]
@@ -179,26 +188,23 @@ class Entropy():
 
     # Step 3: Traverse the tree to assign unique binary codes to each symbol
         huff = dict(heappop(heap)[1:])
+        inv_huff= dict((huff[k], k) for k in huff)
     # Step 4: Encode the input sequence using the binary codes
-        encoded_seq = ""
-        for lst in seq:
-            for symbol in lst:
-                encoded_seq += huff[symbol]
+        encoded_seq = []
+        for symbol in flatSeq:
+                encoded_seq.append(huff[symbol])
                 
-        return encoded_seq, huff       
+        return encoded_seq, inv_huff       
     def huffman_decoding(self, encoded_seq, huff):
         decoded_seq = []
-        temp = ""
-        for bit in encoded_seq:
-            temp += str(bit)
-            for symbol, code in huff.items():
-                if code == temp:
-                    decoded_seq.append(symbol)
-                    temp = ""
-                    break  # Exit the loop after finding the symbol
-            else:
-                continue  # If no symbol is found, continue the loop
-            break  # Exit the outer loop after finding the symbol
+        tmp = []
+        for word in encoded_seq:
+                if huff[word]== (-1,-1):
+                    decoded_seq.append(tmp)
+                    tmp = []
+                else:
+                    tmp.append(huff[word])
+                
         return decoded_seq
 class Quantization():
     # Quantiztion matrices

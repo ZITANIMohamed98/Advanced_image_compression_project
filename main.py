@@ -51,10 +51,9 @@ blocks, indices = image_block.forward(ycc_img)
 ###############################################################################
 # Compression
 ###############################################################################
-toEncode_Y = []
-toEncode_CbCr = []
-def process_block(block, index):
-    
+
+def process_block(block, index, toEncode_Y, toEncode_CbCr):
+
     #Prediction  -> Prediction error
     
     # DCT
@@ -77,34 +76,68 @@ def process_block(block, index):
         toEncode_Y.append(encoded)
     else:
         toEncode_CbCr.append(encoded)
+    
+    
 
-    encoded = rle.backward(decoded)
+    
+def reconstruct_blocks(decodedY, decodedCbCr,index, reconstructed_frame):
+    if index[2] == 0:
+        channel_type = 'lum'
+    else:
+        channel_type = 'chr'
+    
+    assert channel_type in ('lum', 'chr')
+        
+    if channel_type == 'lum':
+        decoded = decodedY[0]
+        decodedY.pop(0)
+    else:
+        decoded = decodedCbCr[0]
+        decodedCbCr.pop(0)
+        
+    decoded = rle.backward(decoded)
     # Reverse RLE + zigzag scanning
     decoded = zigzagScanning.backward(decoded)
     # Dequantization
     decoded = quantization.backward(decoded, channel_type)
     
     # Reverse DCT
-    compressed = dct2d.backward(decoded)
-    return compressed
-
-    #Reverse Prediction 
+    reconstructed_block = dct2d.backward(decoded)
+    
+    reconstructed_frame.append(reconstructed_block)
 
 # Use Pool from the multiprocessing library becasue the compression task is 
 # highly parallelizable. The same operation is performed on different blocks
 # where there is no dependency among the data. 
 #compressed = np.array(Pool().starmap(process_block, zip(blocks, indices)))
-
-compressed = []
+toEncode_Y = []
+toEncode_CbCr = []
 for i in range(0,int(blocks.size/64)-1):
-  compressed.append(process_block(blocks[i],indices[i]))
-encodedY, codebook = entropy.huffman_encoding(toEncode_Y)
-encodedCbCr, codebook= entropy.huffman_encoding(toEncode_CbCr)
+  process_block(blocks[i] ,indices[i] ,toEncode_Y ,toEncode_CbCr)
+  
+# Huffman coding for Luma and chroma separetly
+encodedY, codebookY = entropy.huffman_encoding(toEncode_Y)
+encodedCbCr, codebookCbCr= entropy.huffman_encoding(toEncode_CbCr)
+
+# calculating the compression ratio
+compression_ratio = rgb_img.shape[0]*rgb_img.shape[1]*24/(sum(len(word) for word in encodedY)+sum(len(word) for word in encodedCbCr))
+print(compression_ratio)
+
+# Huffman decoding for Luma and chroma separetly
+decodedY = entropy.huffman_decoding(encodedY, codebookY)
+decodedCbCr = entropy.huffman_decoding(encodedCbCr, codebookCbCr)
+
+#Reconstruct the Frame
+reconstructed_frame = []
+for i in range(0,int(blocks.size/64)-1):
+    reconstruct_blocks(decodedY, decodedCbCr,indices[i], reconstructed_frame)
+    
+
 ###############################################################################
 # Postprocess
 ###############################################################################
 # Reconstruct image from blocks
-ycc_img_compressed = image_block.backward(compressed, indices)
+ycc_img_compressed = image_block.backward(reconstructed_frame, indices)
 
 # Rescale
 ycc_img_compressed = (ycc_img_compressed+128).astype('uint8')
