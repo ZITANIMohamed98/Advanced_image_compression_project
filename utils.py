@@ -229,7 +229,7 @@ class Quantization():
                       [99,99,99,99,99,99,99,99],
                       [99,99,99,99,99,99,99,99]])
     
-    def forward(self, x, channel_type):
+    def forward(self, x, channel_type,QP):
         assert channel_type in ('lum', 'chr')
         
         if channel_type == 'lum':
@@ -237,10 +237,10 @@ class Quantization():
         else:
             Q = self.Q_chr
 
-        out = np.round(x/Q)
+        out = np.round(x/(QP*Q))
         return out
     
-    def backward(self, x, channel_type):
+    def backward(self, x, channel_type,QP):
         assert channel_type in ('lum', 'chr')
         
         if channel_type == 'lum':
@@ -248,5 +248,5 @@ class Quantization():
         else:
             Q = self.Q_chr
 
-        out = x*Q
+        out = x*Q*QP
         return out

@@ -51,7 +51,7 @@ blocks, indices = image_block.forward(ycc_img)
 ###############################################################################
 # Compression
 ###############################################################################
-
+QP = 15
 def process_block(block, index, toEncode_Y, toEncode_CbCr):
 
     #Prediction  -> Prediction error
@@ -64,7 +64,7 @@ def process_block(block, index, toEncode_Y, toEncode_CbCr):
         channel_type = 'chr'
         
     # Quantization
-    encoded = quantization.forward(encoded, channel_type)
+    encoded = quantization.forward(encoded, channel_type, QP)
     
     # RLE + zigzag scanning
     encoded = zigzagScanning.forward(encoded)
@@ -99,7 +99,7 @@ def reconstruct_blocks(decodedY, decodedCbCr,index, reconstructed_frame):
     # Reverse RLE + zigzag scanning
     decoded = zigzagScanning.backward(decoded)
     # Dequantization
-    decoded = quantization.backward(decoded, channel_type)
+    decoded = quantization.backward(decoded, channel_type, QP)
     
     # Reverse DCT
     reconstructed_block = dct2d.backward(decoded)
